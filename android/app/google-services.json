@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "176994865070",
+    "project_id": "charging-56c76",
+    "storage_bucket": "charging-56c76.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:176994865070:android:c52ca9f7f665f56efb423f",
+        "android_client_info": {
+          "package_name": "com.example.appnew"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQnFHc1mChwhGGvJ4k5p9-CoBq707D3ug"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
