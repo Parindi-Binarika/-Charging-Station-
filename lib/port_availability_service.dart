@@ -183,7 +183,11 @@ class PortAvailabilityService {
             .get();
     if (!snapshot.exists) return false;
     for (final child in snapshot.children) {
-      final data = Map<String, dynamic>.from(child.value as Map);
+      final data = Map<String, dynamic>.fromEntries(
+        (child.value as Map).entries.map(
+          (e) => MapEntry(e.key.toString(), e.value),
+        ),
+      );
       if (data['status'] == 'Active' || data['status'] == 'Charging Started') {
         return true;
       }
@@ -201,7 +205,11 @@ class PortAvailabilityService {
             .get();
     if (!snapshot.exists) return null;
     for (final child in snapshot.children) {
-      final data = Map<String, dynamic>.from(child.value as Map);
+      final data = Map<String, dynamic>.fromEntries(
+        (child.value as Map).entries.map(
+          (e) => MapEntry(e.key.toString(), e.value),
+        ),
+      );
       if (data['status'] == 'Active' || data['status'] == 'Charging Started') {
         return child;
       }

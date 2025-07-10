@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'port_availability_service.dart' as port_service;
-import 'services/charging_service.dart';
+import 'package:appnew/payment/Mobile_Payment.dart';
 import 'widgets/dashboard_charging_widget.dart';
+import 'services/charging_service.dart';
 
 class PackagesScreen extends StatefulWidget {
   final GlobalKey<DashboardChargingWidgetState>? chargingWidgetKey;
@@ -21,14 +22,14 @@ class _PackagesScreenState extends State<PackagesScreen> {
     {
       'name': 'Basic Package',
       'price': 100,
-      'duration': 1, // 1 hour in minutes
+      'duration': 2, //for developmemt, i keep this as 2 min.....
       'description': 'Perfect for quick charging sessions',
       'features': ['Fast charging', '1 hour duration', 'Standard support'],
     },
     {
       'name': 'Standard Package',
       'price': 250,
-      'duration': 2, // 3 hours in minutes
+      'duration': 180, // 3 hours in minutes
       'description': 'Ideal for extended charging needs',
       'features': [
         'Fast charging',
@@ -62,14 +63,16 @@ class _PackagesScreenState extends State<PackagesScreen> {
 
     try {
       // Check for active session
-      final hasActive = await port_service.PortAvailabilityService.hasActiveSession(currentUserId!);
+      final hasActive = await port_service
+          .PortAvailabilityService.hasActiveSession(currentUserId!);
       if (hasActive) {
         _showErrorDialog('You already have an active charging session.');
         return;
       }
 
       // Check port availability
-      final isAvailable = await port_service.PortAvailabilityService.isPortTypeAvailable(
+      final isAvailable = await port_service
+          .PortAvailabilityService.isPortTypeAvailable(
         port_service.PortAvailabilityService.MOBILE_PORT,
       );
 
@@ -90,20 +93,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
       );
 
       if (portId != null) {
-        // Start charging session
-        final result = await ChargingService.startChargingSession(
-          userId: currentUserId!,
-          package: package,
-          portId: portId,
-          portType: port_service.PortAvailabilityService.MOBILE_PORT,
-          chargingWidgetKey: widget.chargingWidgetKey,
-        );
-
-        if (result == null) {
-          _showErrorDialog('Failed to start charging.');
-        } else {
-          _showSuccessDialog(package, portId);
-        }
+        _navigateToPaymentScreen(package, portId);
       } else {
         _showErrorDialog('Failed to reserve port.');
       }
@@ -114,78 +104,80 @@ class _PackagesScreenState extends State<PackagesScreen> {
     }
   }
 
-  Future<bool> _showConfirmationDialog(Map<String, dynamic> package) async {
-    return await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Confirm ${package['name']}'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Price: \$${package['price']}'),
-            Text('Duration: ${package['duration']} mins'),
-            const SizedBox(height: 10),
-            const Text('Start this charging session?'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal[800],
+  void _navigateToPaymentScreen(Map<String, dynamic> package, String portId) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => Mobile_Payment(
+              package: package,
+              portId: portId,
+              userId: currentUserId!,
+              onPaymentSuccess: () async {
+                // Start charging session after payment
+                await ChargingService.startChargingSession(
+                  userId: currentUserId!,
+                  package: package,
+                  portId: portId,
+                  portType: port_service.PortAvailabilityService.MOBILE_PORT,
+                  chargingWidgetKey: widget.chargingWidgetKey,
+                );
+                if (mounted) {
+                  Navigator.popUntil(context, (route) => route.isFirst);
+                }
+              },
             ),
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
-    ) ?? false;
-  }
-
-  void _showSuccessDialog(Map<String, dynamic> package, String portId) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Charging Started!'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.check_circle, color: Colors.green, size: 48),
-            const SizedBox(height: 16),
-            Text('Port: $portId'),
-            Text('Duration: ${package['duration']} mins'),
-          ],
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal[800],
-            ),
-            child: const Text('OK'),
-          ),
-        ],
       ),
     );
+  }
+
+  Future<bool> _showConfirmationDialog(Map<String, dynamic> package) async {
+    return await showDialog<bool>(
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: Text('Confirm ${package['name']}'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Price: LKR ${package['price']}'),
+                    Text('Duration: ${package['duration']} mins'),
+                    const SizedBox(height: 10),
+                    const Text('Proceed to payment?'),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal[800],
+                    ),
+                    child: const Text('Continue'),
+                  ),
+                ],
+              ),
+        ) ??
+        false;
   }
 
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Error'),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -202,12 +194,9 @@ class _PackagesScreenState extends State<PackagesScreen> {
         ),
         child: Column(
           children: [
-            // Port availability status
             _buildPortStatus(),
-            // Active session warning
             if (currentUserId != null) _buildActiveSessionWarning(),
             const SizedBox(height: 16),
-            // Packages list
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -246,7 +235,10 @@ class _PackagesScreenState extends State<PackagesScreen> {
               children: [
                 CircularProgressIndicator(color: Colors.white),
                 SizedBox(width: 16),
-                Text('Checking port availability...', style: TextStyle(color: Colors.white)),
+                Text(
+                  'Checking port availability...',
+                  style: TextStyle(color: Colors.white),
+                ),
               ],
             );
           }
@@ -256,17 +248,24 @@ class _PackagesScreenState extends State<PackagesScreen> {
               children: [
                 Icon(Icons.error, color: Colors.red),
                 SizedBox(width: 16),
-                Text('Error checking availability', style: TextStyle(color: Colors.white)),
+                Text(
+                  'Error checking availability',
+                  style: TextStyle(color: Colors.white),
+                ),
               ],
             );
           }
 
           if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
-            return const Text('No Mobile Charging Ports found', style: TextStyle(color: Colors.white));
+            return const Text(
+              'No Mobile Charging Ports found',
+              style: TextStyle(color: Colors.white),
+            );
           }
 
           final ports = (snapshot.data!.snapshot.value as Map).values.toList();
-          final availablePorts = ports.where((port) => port['isAvailable'] == true).length;
+          final availablePorts =
+              ports.where((port) => port['isAvailable'] == true).length;
           final hasAvailable = availablePorts > 0;
 
           return Row(
@@ -283,7 +282,11 @@ class _PackagesScreenState extends State<PackagesScreen> {
                   children: [
                     const Text(
                       'Mobile Charging Ports',
-                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Text(
                       'Available: $availablePorts / ${ports.length}',
@@ -293,14 +296,20 @@ class _PackagesScreenState extends State<PackagesScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: hasAvailable ? Colors.green : Colors.red,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   hasAvailable ? 'Available' : 'All Busy',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -312,7 +321,9 @@ class _PackagesScreenState extends State<PackagesScreen> {
 
   Widget _buildActiveSessionWarning() {
     return FutureBuilder<bool>(
-      future: port_service.PortAvailabilityService.hasActiveSession(currentUserId!),
+      future: port_service.PortAvailabilityService.hasActiveSession(
+        currentUserId!,
+      ),
       builder: (context, snapshot) {
         if (snapshot.hasData && snapshot.data == true) {
           return Container(
@@ -385,7 +396,10 @@ class _PackageCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.teal[800],
                     borderRadius: BorderRadius.circular(20),
@@ -395,7 +409,8 @@ class _PackageCard extends StatelessWidget {
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      fontSize: 16),
+                      fontSize: 16,
+                    ),
                   ),
                 ),
               ],
@@ -415,7 +430,8 @@ class _PackageCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF0F4C5C)),
+                    color: Color(0xFF0F4C5C),
+                  ),
                 ),
               ],
             ),
@@ -425,19 +441,34 @@ class _PackageCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey[800]),
+                color: Colors.grey[800],
+              ),
             ),
             const SizedBox(height: 8),
-            ...package['features'].map<Widget>((feature) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Colors.green, size: 16),
-                  const SizedBox(width: 8),
-                  Text(feature, style: TextStyle(fontSize: 14, color: Colors.grey[700])),
-                ],
-              ),
-            )).toList(),
+            ...package['features']
+                .map<Widget>(
+                  (feature) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.check_circle,
+                          color: Colors.green,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          feature,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+                .toList(),
             const SizedBox(height: 20),
             _buildSelectButton(),
           ],
@@ -450,18 +481,25 @@ class _PackageCard extends StatelessWidget {
     final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
     return StreamBuilder<DatabaseEvent>(
-      stream: currentUserId != null
-          ? port_service.PortAvailabilityService.getPortsByTypeStream(
-              port_service.PortAvailabilityService.MOBILE_PORT)
-          : null,
+      stream:
+          currentUserId != null
+              ? port_service.PortAvailabilityService.getPortsByTypeStream(
+                port_service.PortAvailabilityService.MOBILE_PORT,
+              )
+              : null,
       builder: (context, snapshot) {
         final ports = snapshot.data?.snapshot.value ?? {};
-        final hasAvailable = (ports as Map).values.any((port) => port['isAvailable'] == true);
+        final hasAvailable = (ports as Map).values.any(
+          (port) => port['isAvailable'] == true,
+        );
 
         return FutureBuilder<bool>(
-          future: currentUserId != null
-              ? port_service.PortAvailabilityService.hasActiveSession(currentUserId)
-              : Future.value(false),
+          future:
+              currentUserId != null
+                  ? port_service.PortAvailabilityService.hasActiveSession(
+                    currentUserId,
+                  )
+                  : Future.value(false),
           builder: (context, activeSessionSnapshot) {
             final hasActiveSession = activeSessionSnapshot.data ?? false;
             final canSelect = hasAvailable && !hasActiveSession && !isLoading;
@@ -474,26 +512,30 @@ class _PackageCard extends StatelessWidget {
                   backgroundColor: canSelect ? Colors.teal[800] : Colors.grey,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2),
-                      )
-                    : Text(
-                        !hasAvailable
-                            ? 'No Ports Available'
-                            : hasActiveSession
-                                ? 'Session Active'
-                                : 'Select Package',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold),
-                      ),
+                child:
+                    isLoading
+                        ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                        : Text(
+                          !hasAvailable
+                              ? 'No Ports Available'
+                              : hasActiveSession
+                              ? 'Session Active'
+                              : 'Select Package',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
               ),
             );
           },

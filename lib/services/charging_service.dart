@@ -14,11 +14,23 @@ class ChargingService {
     required GlobalKey<DashboardChargingWidgetState>? chargingWidgetKey,
   }) async {
     try {
-      final duration = package['duration'] ?? 60;
+      // Safely get duration with fallback to 60 minutes
+      final duration = _parseDuration(package['duration']);
 
+      // Convert package to Map<String, dynamic> with string keys
+      final safePackage =
+          package is Map<String, dynamic>
+              ? package
+              : Map<String, dynamic>.fromEntries(
+                (package as Map).entries.map(
+                  (e) => MapEntry(e.key.toString(), e.value),
+                ),
+              );
+
+      // Create order data with type-safe values
       final orderData = {
         'userId': userId,
-        'packageName': package['name'],
+        'packageName': safePackage['name']?.toString() ?? 'Unknown Package',
         'portType': portType,
         'portId': portId,
         'status': 'Active',
@@ -30,16 +42,26 @@ class ChargingService {
       final orderRef = _database.ref('orders').push();
       await orderRef.set(orderData);
 
-      chargingWidgetKey?.currentState?.startCharging(
-        orderId: orderRef.key!,
-        packageName: package['name'],
-        portId: portId,
-        durationMinutes: duration,
-      );
+      // Get a safe order ID
+      final safeOrderId = orderRef.key ?? '';
 
-      return {'orderId': orderRef.key!, 'portId': portId, 'duration': duration};
-    } catch (e) {
-      print('Error starting charging session: $e');
+      // Start charging if widget is available
+      if (chargingWidgetKey?.currentState != null &&
+          chargingWidgetKey?.currentState?.mounted == true) {
+        chargingWidgetKey?.currentState?.startCharging(
+          orderId: safeOrderId,
+          packageName: safePackage['name']?.toString() ?? 'Unknown Package',
+          portId: portId,
+          durationMinutes: duration,
+        );
+      } else {
+        debugPrint('Charging widget not available or not mounted');
+      }
+
+      return {'orderId': safeOrderId, 'portId': portId, 'duration': duration};
+    } catch (e, stackTrace) {
+      debugPrint('Error starting charging session: $e');
+      debugPrint('Stack trace: $stackTrace');
       return null;
     }
   }
@@ -49,6 +71,11 @@ class ChargingService {
     required String portId,
   }) async {
     try {
+      if (orderId.isEmpty) {
+        debugPrint('Invalid orderId provided');
+        return false;
+      }
+
       await _database.ref('orders/$orderId').update({
         'status': 'Completed',
         'completedAt': ServerValue.timestamp,
@@ -56,9 +83,36 @@ class ChargingService {
 
       await port_service.PortAvailabilityService.releasePort(portId, '');
       return true;
-    } catch (e) {
-      print('Error completing charging session: $e');
+    } catch (e, stackTrace) {
+      debugPrint('Error completing charging session: $e');
+      debugPrint('Stack trace: $stackTrace');
       return false;
+    }
+  }
+
+  // Helper method to safely parse duration
+  static int _parseDuration(dynamic duration) {
+    try {
+      if (duration is int) return duration;
+      if (duration is double) return duration.toInt();
+      if (duration is String) return int.tryParse(duration) ?? 60;
+      return 60;
+    } catch (e) {
+      debugPrint('Error parsing duration: $e');
+      return 60;
+    }
+  }
+
+  // Helper method to safely convert Firebase data
+  static Map<String, dynamic> safeCastMap(dynamic data) {
+    try {
+      if (data is Map) {
+        return Map<String, dynamic>.from(data);
+      }
+      return {};
+    } catch (e) {
+      debugPrint('Error casting map: $e');
+      return {};
     }
   }
 }

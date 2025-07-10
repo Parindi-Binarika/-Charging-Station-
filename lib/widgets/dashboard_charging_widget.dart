@@ -34,9 +34,13 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
     required String portId,
     required int durationMinutes,
   }) {
+    final int safeDuration =
+        durationMinutes is int
+            ? durationMinutes
+            : int.tryParse(durationMinutes.toString()) ?? 60;
     setState(() {
       isCharging = true;
-      remainingSeconds = durationMinutes * 60;
+      remainingSeconds = safeDuration * 60;
       currentOrderId = orderId;
       currentPackageName = packageName;
       currentPortId = portId;
@@ -62,9 +66,9 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
 
       // Update order in Realtime Database
       if (currentOrderId != null) {
-        await FirebaseDatabase.instance
-            .ref('orders/${currentOrderId!}')
-            .update({'status': 'Completed', 'completedAt': ServerValue.timestamp});
+        await FirebaseDatabase.instance.ref('orders/${currentOrderId!}').update(
+          {'status': 'Completed', 'completedAt': ServerValue.timestamp},
+        );
       }
 
       // Release the charging port using the actual service
@@ -87,9 +91,9 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
     } catch (e) {
       print("Error completing charging: $e");
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating status: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error updating status: $e')));
       }
     }
   }
@@ -183,7 +187,8 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
           LinearProgressIndicator(
             value:
                 remainingSeconds > 0
-                    ? (60 - remainingSeconds) / 60 // Assuming 1 minute for development
+                    ? (60 - remainingSeconds) /
+                        60 // Assuming 1 minute for development
                     : 1.0,
             backgroundColor: Colors.white24,
             valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
@@ -205,24 +210,29 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
             onPressed: () async {
               final confirm = await showDialog<bool>(
                 context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Cancel Charging'),
-                  content: const Text('Are you sure you want to cancel this charging session?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('No'),
+                builder:
+                    (context) => AlertDialog(
+                      title: const Text('Cancel Charging'),
+                      content: const Text(
+                        'Are you sure you want to cancel this charging session?',
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('No'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                          ),
+                          child: const Text('Yes, Cancel'),
+                        ),
+                      ],
                     ),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                      child: const Text('Yes, Cancel'),
-                    ),
-                  ],
-                ),
               );
               if (confirm == true) {
-                await _cancelCharging();
+                await cancelCharging();
               }
             },
           ),
@@ -231,19 +241,18 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
     );
   }
 
-  Future<void> _cancelCharging() async {
+  Future<void> cancelCharging() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      // Update order in Realtime Database to "cancled"
       if (currentOrderId != null) {
-        await FirebaseDatabase.instance
-            .ref('orders/${currentOrderId!}')
-            .update({'status': 'cancled', 'cancledAt': ServerValue.timestamp});
+        await FirebaseDatabase.instance.ref('orders/$currentOrderId').update({
+          'status': 'Cancelled',
+          'cancelledAt': ServerValue.timestamp,
+        });
       }
 
-      // Release the charging port
       if (currentPortId != null) {
         await PortAvailabilityService.releasePort(currentPortId!, user.uid);
       }
@@ -267,9 +276,9 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error canceling charging: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error canceling charging: $e')));
       }
     }
   }

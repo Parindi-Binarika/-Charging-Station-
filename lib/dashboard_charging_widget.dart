@@ -1,16 +1,14 @@
 import 'dart:async';
 import 'package:appnew/services/charging_service.dart';
 import 'package:flutter/material.dart';
-import '../port_availability_service.dart' as port_service;
 
 class DashboardChargingWidget extends StatefulWidget {
   final VoidCallback? onChargingComplete;
+  @override
   final GlobalKey<DashboardChargingWidgetState>? key;
 
-  const DashboardChargingWidget({
-    this.key,
-    this.onChargingComplete,
-  }) : super(key: key);
+  const DashboardChargingWidget({this.key, this.onChargingComplete})
+    : super(key: key);
 
   @override
   DashboardChargingWidgetState createState() => DashboardChargingWidgetState();
@@ -30,22 +28,21 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
     super.dispose();
   }
 
-void startCharging({
-  required String orderId,
-  required String packageName,
-  required String portId,
-  required int durationMinutes,
-}) {
-  
-  setState(() {
-    _currentOrderId = orderId;
-    _currentPackageName = packageName;
-    _currentPortId = portId;
-    _remainingSeconds = durationMinutes * 60;
-    _isCharging = true;
-  });
-  _startTimer();
-}
+  void startCharging({
+    required String orderId,
+    required String packageName,
+    required String portId,
+    required int durationMinutes,
+  }) {
+    setState(() {
+      _currentOrderId = orderId;
+      _currentPackageName = packageName;
+      _currentPortId = portId;
+      _remainingSeconds = durationMinutes * 60;
+      _isCharging = true;
+    });
+    _startTimer();
+  }
 
   void _startTimer() {
     _timer?.cancel();
@@ -191,8 +188,77 @@ void startCharging({
             '${(progress * 100).toStringAsFixed(0)}% Complete',
             style: const TextStyle(color: Colors.white70, fontSize: 12),
           ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            icon: const Icon(Icons.cancel, color: Colors.white),
+            label: const Text('Cancel Charging'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 40),
+            ),
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Cancel Charging'),
+                  content: const Text('Are you sure you want to cancel this charging session?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('No'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                      child: const Text('Yes, Cancel'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                await _cancelCharging();
+              }
+            },
+          ),
         ],
       ),
     );
   }
+
+  Future<void> _cancelCharging() async {
+    try {
+      if (_currentOrderId != null && _currentPortId != null) {
+        await ChargingService.completeChargingSession(
+          orderId: _currentOrderId!,
+          portId: _currentPortId!,
+        );
+      }
+
+      setState(() {
+        _isCharging = false;
+        _currentOrderId = null;
+        _currentPackageName = null;
+        _currentPortId = null;
+      });
+
+      widget.onChargingComplete?.call();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Charging session canceled.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error canceling charging: $e')),
+        );
+      }
+    }
+  }
 }
+      
