@@ -11,10 +11,10 @@ class EVChartScreen extends StatefulWidget {
 }
 
 class EVChartScreenState extends State<EVChartScreen> {
-  Map<String, int> packageCounts = {};
-  Map<String, int> durationTotals = {};
+  Map<String, double> ampereTotals = {};
+  Map<String, int> sessionCounts = {};
   bool isLoading = true;
-  String chartType = 'Duration'; // 'Duration' or 'Count'
+  String chartType = 'Ampere'; // 'Ampere' or 'Sessions'
 
   @override
   void initState() {
@@ -31,23 +31,25 @@ class EVChartScreenState extends State<EVChartScreen> {
       final snapshot =
           await dbRef.orderByChild('userId').equalTo(user.uid).get();
 
-      final Map<String, int> counts = {};
-      final Map<String, int> durations = {};
+      final Map<String, double> ampereData = {};
+      final Map<String, int> sessionData = {};
 
       for (final child in snapshot.children) {
         final data = Map<String, dynamic>.from(child.value as Map);
         if ((data['portType'] ?? 'ev').toString().toLowerCase() == 'ev') {
           final pkg = data['packageName']?.toString() ?? 'Unknown';
-          final duration = int.tryParse(data['durationMinutes']?.toString() ?? '0') ?? 0;
+          final consumedAmpere =
+              double.tryParse(data['consumedAmpere']?.toString() ?? '0') ?? 0;
 
-          counts.update(pkg, (value) => value + 1, ifAbsent: () => 1);
-          durations.update(pkg, (value) => value + duration, ifAbsent: () => duration);
+          ampereData.update(pkg, (value) => value + consumedAmpere,
+              ifAbsent: () => consumedAmpere);
+          sessionData.update(pkg, (value) => value + 1, ifAbsent: () => 1);
         }
       }
 
       setState(() {
-        packageCounts = counts;
-        durationTotals = durations;
+        ampereTotals = ampereData;
+        sessionCounts = sessionData;
         isLoading = false;
       });
     } catch (e) {
@@ -63,7 +65,7 @@ class EVChartScreenState extends State<EVChartScreen> {
   }
 
   List<BarChartGroupData> getBarGroups() {
-    final dataMap = chartType == 'Count' ? packageCounts : durationTotals;
+    final dataMap = chartType == 'Ampere' ? ampereTotals : sessionCounts;
     int i = 0;
     return dataMap.entries.map((entry) {
       return BarChartGroupData(
@@ -82,7 +84,7 @@ class EVChartScreenState extends State<EVChartScreen> {
   }
 
   Widget bottomTitles(double value, TitleMeta meta) {
-    final dataMap = chartType == 'Count' ? packageCounts : durationTotals;
+    final dataMap = chartType == 'Ampere' ? ampereTotals : sessionCounts;
     if (value.toInt() >= dataMap.length) return const SizedBox.shrink();
     final pkgName = dataMap.keys.elementAt(value.toInt());
     final shortName = pkgName.split(' - ')[0];
@@ -133,7 +135,7 @@ class EVChartScreenState extends State<EVChartScreen> {
                 setState(() => chartType = value);
               }
             },
-            items: ['Duration', 'Count'].map((type) {
+            items: ['Ampere', 'Sessions'].map((type) {
               return DropdownMenuItem(
                 value: type,
                 child: Text(
@@ -147,16 +149,16 @@ class EVChartScreenState extends State<EVChartScreen> {
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : (packageCounts.isEmpty && durationTotals.isEmpty)
+          : (ampereTotals.isEmpty && sessionCounts.isEmpty)
               ? const Center(child: Text('No EV charging data available'))
               : Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
                       Text(
-                        chartType == 'Count'
-                            ? 'Number of EV Charging Sessions per Package'
-                            : 'Total EV Charging Duration per Package (minutes)',
+                        chartType == 'Ampere'
+                            ? 'Total Ampere Consumed per Package'
+                            : 'Number of EV Charging Sessions per Package',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -195,13 +197,13 @@ class EVChartScreenState extends State<EVChartScreen> {
                             barTouchData: BarTouchData(
                               enabled: true,
                               touchTooltipData: BarTouchTooltipData(
-                                //backgroundColor: const Color(0xFF0F4C5C),
                                 getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                                  final dataMap = chartType == 'Count' ? packageCounts : durationTotals;
+                                  final dataMap =
+                                      chartType == 'Ampere' ? ampereTotals : sessionCounts;
                                   final pkgName = dataMap.keys.elementAt(group.x.toInt());
                                   final value = rod.toY.toInt();
                                   return BarTooltipItem(
-                                    '${chartType == 'Count' ? 'Sessions' : 'Minutes'}: $value\n$pkgName',
+                                    '${chartType == 'Ampere' ? 'Ampere' : 'Sessions'}: $value\n$pkgName',
                                     const TextStyle(
                                       color: Colors.white,
                                       fontSize: 12,

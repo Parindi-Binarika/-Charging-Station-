@@ -1,9 +1,9 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
+import '../services/ampere_service.dart';
 import 'ev_chart_screen.dart';
 
 class EVHistoryScreen extends StatefulWidget {
@@ -42,14 +42,15 @@ class EVHistoryScreenState extends State<EVHistoryScreen> {
       final List<Map<String, dynamic>> loadedOrders = [];
       for (final child in snapshot.children) {
         final data = Map<String, dynamic>.from(child.value as Map);
-        // Use 'portType' to filter for EV, and 'packageName'/'durationMinutes'
-        if ((data['portType'] ?? 'ev') == 'ev' || (data['portType'] ?? 'EV') == 'EV') {
+        // Filter for EV orders based on `portType` and include ampere-related data
+        if ((data['portType'] ?? 'ev') == 'ev') {
           loadedOrders.add({
             'id': child.key,
             'package': data['packageName'] ?? 'N/A',
             'status': data['status'] ?? 'N/A',
             'price': data['price'] ?? 'N/A',
-            'duration': data['durationMinutes'] ?? 0,
+            'ampereLimit': data['ampereLimit'] ?? 0,
+            'consumedAmpere': data['consumedAmpere'] ?? 0,
             'timestamp': DateTime.fromMillisecondsSinceEpoch(
               (data['createdAt'] is int)
                   ? data['createdAt']
@@ -152,7 +153,10 @@ class EVHistoryScreenState extends State<EVHistoryScreen> {
                                 const SizedBox(height: 4),
                                 Text("Status: ${order['status']}"),
                                 Text("Price: ${order['price']}"),
-                                Text("Duration: ${order['duration']} mins"),
+                                Text("Ampere Limit: ${order['ampereLimit']}A"),
+                                Text(
+                                  "Consumed Ampere: ${order['consumedAmpere']}A",
+                                ),
                                 const SizedBox(height: 2),
                                 Text("Date: ${formatDate(order['timestamp'])}"),
                               ],

@@ -1,0 +1,13 @@
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
+    "orders": {
+      ".indexOn": ["userId"]
+    },
+    "current_sensor_readings": {
+      ".read": "auth != null",
+      ".write": "auth != null"
+    }
+  }
+}

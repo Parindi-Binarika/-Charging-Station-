@@ -11,8 +11,11 @@ import 'ev_chart_screen.dart';
 import 'login_screen.dart';
 import 'port_availability_service.dart' as port_service;
 import 'port_status_widget.dart';
+
+// Mobile charging session widget
 import 'widgets/dashboard_charging_widget.dart';
-import 'package:appnew/services/charging_service.dart';
+// EV charging session widget
+import 'widgets/dashboard_ampere_widget.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -24,6 +27,7 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
   final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
+  // GlobalKey for Mobile Charging Widget
   final GlobalKey<DashboardChargingWidgetState> chargingWidgetKey = GlobalKey();
 
   @override
@@ -37,11 +41,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (currentUserId == null) return;
 
     try {
-      final snapshot = await FirebaseDatabase.instance
-          .ref('orders')
-          .orderByChild('userId')
-          .equalTo(currentUserId)
-          .once();
+      final snapshot =
+          await FirebaseDatabase.instance
+              .ref('orders')
+              .orderByChild('userId')
+              .equalTo(currentUserId)
+              .once();
 
       final data = snapshot.snapshot.value;
       if (data == null) return;
@@ -49,15 +54,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final orders = _safeCastToMap(data);
       if (orders.isEmpty) return;
 
-      final activeOrderEntry = orders.entries.firstWhere(
-        (entry) {
-          final order = _safeCastToMap(entry.value);
-          return order['status'] == 'Active' || order['status'] == 'Charging Started';
-        },
-        orElse: () => MapEntry('', null),
-      );
+      final activeOrderEntry = orders.entries.firstWhere((entry) {
+        final order = _safeCastToMap(entry.value);
+        return order['status'] == 'Active' ||
+            order['status'] == 'Charging Started';
+      }, orElse: () => MapEntry('', null));
 
-      if (activeOrderEntry.key != null && chargingWidgetKey.currentState != null) {
+      if (activeOrderEntry.key != null &&
+          chargingWidgetKey.currentState != null) {
         final order = _safeCastToMap(activeOrderEntry.value);
         chargingWidgetKey.currentState!.startCharging(
           orderId: activeOrderEntry.key!,
@@ -73,29 +77,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Map<String, dynamic> _safeCastToMap(dynamic value) {
     if (value == null) return {};
-    
     if (value is Map<dynamic, dynamic>) {
-      return value.map<String, dynamic>((key, value) => 
-        MapEntry(key.toString(), value)
+      return value.map<String, dynamic>(
+        (key, value) => MapEntry(key.toString(), value),
       );
     }
-    
     if (value is Map) {
       return Map<String, dynamic>.from(value);
     }
-    
     return {};
   }
 
   List<Widget> get _pages => [
-        _DashboardHomeScreen(chargingWidgetKey: chargingWidgetKey),
-        PackagesScreen(chargingWidgetKey: chargingWidgetKey),
-        const HistoryScreen(),
-        const ChartViewScreen(),
-        EVPackageScreen(chargingWidgetKey: chargingWidgetKey),
-        const EVHistoryScreen(),
-        const EVChartScreen(),
-      ];
+    _DashboardHomeScreen(chargingWidgetKey: chargingWidgetKey),
+    PackagesScreen(chargingWidgetKey: chargingWidgetKey),
+    const HistoryScreen(),
+    const ChartViewScreen(),
+    EVPackageScreen(chargingWidgetKey: chargingWidgetKey),
+    const EVHistoryScreen(),
+    const EVChartScreen(),
+  ];
 
   final List<String> _titles = [
     "Dashboard",
@@ -119,9 +120,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
           if (currentUserId != null)
             StreamBuilder(
               stream: Stream.periodic(const Duration(seconds: 5)).asyncMap(
-                (_) => port_service.PortAvailabilityService.getUserActiveSession(
-                  currentUserId!,
-                ),
+                (_) =>
+                    port_service.PortAvailabilityService.getUserActiveSession(
+                      currentUserId!,
+                    ),
               ),
               builder: (context, snapshot) {
                 if (snapshot.hasData && snapshot.data != null) {
@@ -217,12 +219,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       body: Column(
         children: [
+          // For EV Charging Status (ampere-based)
+          const DashboardAmpereWidget(),
+          // For Mobile Charging Status
           DashboardChargingWidget(
             key: chargingWidgetKey,
             onChargingComplete: () {
               setState(() {});
             },
           ),
+          // Main content
           Expanded(child: _pages[_selectedIndex]),
         ],
       ),
@@ -290,10 +296,7 @@ class _DashboardHomeScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Monitor port availability and manage your charging sessions',
-                  style: TextStyle(
-                    color: Colors.white.withAlpha((0.9 * 255).toInt()),
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
                 ),
               ],
             ),
@@ -319,29 +322,33 @@ class _DashboardHomeScreen extends StatelessWidget {
           const SizedBox(height: 24),
           if (currentUserId != null)
             StreamBuilder(
-              stream: FirebaseDatabase.instance
-                  .ref('orders')
-                  .orderByChild('userId')
-                  .equalTo(currentUserId)
-                  .onValue,
+              stream:
+                  FirebaseDatabase.instance
+                      .ref('orders')
+                      .orderByChild('userId')
+                      .equalTo(currentUserId)
+                      .onValue,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                
-                if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
+
+                if (!snapshot.hasData ||
+                    snapshot.data!.snapshot.value == null) {
                   return const SizedBox.shrink();
                 }
-                
+
                 try {
                   final data = _safeCastToMap(snapshot.data!.snapshot.value);
-                  final activeOrders = data.entries.where((entry) {
-                    final order = _safeCastToMap(entry.value);
-                    return order['status'] == 'Active' || order['status'] == 'Charging Started';
-                  }).toList();
+                  final activeOrders =
+                      data.entries.where((entry) {
+                        final order = _safeCastToMap(entry.value);
+                        return order['status'] == 'Active' ||
+                            order['status'] == 'Charging Started';
+                      }).toList();
 
                   if (activeOrders.isEmpty) return const SizedBox.shrink();
-                  
+
                   final order = _safeCastToMap(activeOrders.first.value);
                   final orderId = activeOrders.first.key;
 
@@ -372,7 +379,9 @@ class _DashboardHomeScreen extends StatelessWidget {
                               children: [
                                 Icon(
                                   order['portType'] ==
-                                          port_service.PortAvailabilityService.MOBILE_PORT
+                                          port_service
+                                              .PortAvailabilityService
+                                              .MOBILE_PORT
                                       ? Icons.smartphone
                                       : Icons.electric_car,
                                   color: Colors.orange,
@@ -381,7 +390,8 @@ class _DashboardHomeScreen extends StatelessWidget {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'Port: ${order['portId']}',
@@ -428,41 +438,52 @@ class _DashboardHomeScreen extends StatelessWidget {
                               onPressed: () async {
                                 final confirmed = await showDialog<bool>(
                                   context: context,
-                                  builder: (context) => AlertDialog(
-                                    title: const Text('Stop Charging'),
-                                    content: const Text(
-                                      'Are you sure you want to stop the current charging session?',
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () => Navigator.pop(context, false),
-                                        child: const Text('Cancel'),
-                                      ),
-                                      ElevatedButton(
-                                        onPressed: () => Navigator.pop(context, true),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.red,
+                                  builder:
+                                      (context) => AlertDialog(
+                                        title: const Text('Stop Charging'),
+                                        content: const Text(
+                                          'Are you sure you want to stop the current charging session?',
                                         ),
-                                        child: const Text('Stop Charging'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed:
+                                                () => Navigator.pop(
+                                                  context,
+                                                  false,
+                                                ),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          ElevatedButton(
+                                            onPressed:
+                                                () => Navigator.pop(
+                                                  context,
+                                                  true,
+                                                ),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.red,
+                                            ),
+                                            child: const Text('Stop Charging'),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
                                 );
 
                                 if (confirmed == true) {
                                   await FirebaseDatabase.instance
                                       .ref('orders/$orderId')
                                       .update({
-                                    'status': 'Completed',
-                                    'completedAt': ServerValue.timestamp,
-                                  });
-                                  
-                                  await port_service.PortAvailabilityService.releasePort(
+                                        'status': 'Completed',
+                                        'completedAt': ServerValue.timestamp,
+                                      });
+
+                                  await port_service
+                                      .PortAvailabilityService.releasePort(
                                     order['portId'],
                                     currentUserId,
                                   );
 
-                                  chargingWidgetKey.currentState?.cancelCharging();
+                                  chargingWidgetKey.currentState
+                                      ?.cancelCharging();
 
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
@@ -514,9 +535,10 @@ class _DashboardHomeScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => PackagesScreen(
-                          chargingWidgetKey: chargingWidgetKey,
-                        ),
+                        builder:
+                            (context) => PackagesScreen(
+                              chargingWidgetKey: chargingWidgetKey,
+                            ),
                       ),
                     );
                   },
@@ -532,9 +554,10 @@ class _DashboardHomeScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => EVPackageScreen(
-                          chargingWidgetKey: chargingWidgetKey,
-                        ),
+                        builder:
+                            (context) => EVPackageScreen(
+                              chargingWidgetKey: chargingWidgetKey,
+                            ),
                       ),
                     );
                   },
@@ -549,17 +572,17 @@ class _DashboardHomeScreen extends StatelessWidget {
 
   Map<String, dynamic> _safeCastToMap(dynamic value) {
     if (value == null) return {};
-    
+
     if (value is Map<dynamic, dynamic>) {
-      return value.map<String, dynamic>((key, value) => 
-        MapEntry(key.toString(), value)
+      return value.map<String, dynamic>(
+        (key, value) => MapEntry(key.toString(), value),
       );
     }
-    
+
     if (value is Map) {
       return Map<String, dynamic>.from(value);
     }
-    
+
     return {};
   }
 }

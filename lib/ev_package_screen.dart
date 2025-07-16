@@ -4,58 +4,42 @@ import 'package:firebase_database/firebase_database.dart';
 import 'port_availability_service.dart' as port_service;
 import 'services/charging_service.dart';
 import 'widgets/dashboard_charging_widget.dart';
+import 'package:appnew/payment/EV_Payment.dart'; 
 
 class EVPackageScreen extends StatefulWidget {
   final GlobalKey<DashboardChargingWidgetState>? chargingWidgetKey;
   const EVPackageScreen({super.key, this.chargingWidgetKey});
 
   @override
-  _EVPackageScreenState createState() => _EVPackageScreenState();
+  EVPackageScreenState createState() => EVPackageScreenState();
 }
 
-class _EVPackageScreenState extends State<EVPackageScreen> {
+class EVPackageScreenState extends State<EVPackageScreen> {
   final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
   bool _isLoading = false;
 
+  // EV packages based on ampere
   final List<Map<String, dynamic>> evPackages = [
     {
-      'name': 'EV Basic',
-      'price': 300,
-      'duration': 1, // 2 hours in minutes
-      'description': 'Perfect for quick EV charging',
-      'features': [
-        'AC charging',
-        '2 hour duration',
-        'Standard support',
-        'Up to 30kW',
-      ],
+      'name': '10A Package',
+      'ampere': 05,
+      'price': 500,
+      'description': 'Charge with 10 Amperes',
+      'features': ['10A current', 'Standard support', 'Up to 2 hours'],
     },
     {
-      'name': 'EV Standard',
-      'price': 600,
-      'duration': 2, // 4 hours in minutes
-      'description': 'Ideal for extended EV charging',
-      'features': [
-        'DC fast charging',
-        '4 hour duration',
-        'Priority support',
-        'Up to 50kW',
-        'Usage analytics',
-      ],
+      'name': '20A Package',
+      'ampere': 20,
+      'price': 900,
+      'description': 'Charge with 20 Amperes',
+      'features': ['20A current', 'Priority support', 'Up to 4 hours'],
     },
     {
-      'name': 'EV Premium',
-      'price': 1200,
-      'duration': 480, // 8 hours in minutes
-      'description': 'Best for overnight charging',
-      'features': [
-        'Ultra-fast DC charging',
-        '8 hour duration',
-        '24/7 support',
-        'Up to 100kW',
-        'Detailed analytics',
-        'Booking priority',
-      ],
+      'name': '30A Package',
+      'ampere': 30,
+      'price': 1300,
+      'description': 'Charge with 30 Amperes',
+      'features': ['30A current', 'Fastest charging', 'Up to 6 hours'],
     },
   ];
 
@@ -69,14 +53,16 @@ class _EVPackageScreenState extends State<EVPackageScreen> {
 
     try {
       // Check for active session
-      final hasActive = await port_service.PortAvailabilityService.hasActiveSession(currentUserId!);
+      final hasActive = await port_service
+          .PortAvailabilityService.hasActiveSession(currentUserId!);
       if (hasActive) {
         _showErrorDialog('You already have an active charging session.');
         return;
       }
 
       // Check port availability
-      final isAvailable = await port_service.PortAvailabilityService.isPortTypeAvailable(
+      final isAvailable = await port_service
+          .PortAvailabilityService.isPortTypeAvailable(
         port_service.PortAvailabilityService.EV_PORT,
       );
 
@@ -97,20 +83,31 @@ class _EVPackageScreenState extends State<EVPackageScreen> {
       );
 
       if (portId != null) {
-        // Start charging session
-        final result = await ChargingService.startChargingSession(
-          userId: currentUserId!,
-          package: package,
-          portId: portId,
-          portType: port_service.PortAvailabilityService.EV_PORT,
-          chargingWidgetKey: widget.chargingWidgetKey,
+        // Redirect to EV payment screen with ampere, price, portId, etc.
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) => EV_Payment(
+                  package: package,
+                  portId: portId,
+                  userId: currentUserId!,
+                  onPaymentSuccess: () async {
+                    // Start charging session after payment
+                    await ChargingService.startChargingSession(
+                      userId: currentUserId!,
+                      package: package,
+                      portId: portId,
+                      portType: port_service.PortAvailabilityService.EV_PORT,
+                      chargingWidgetKey: widget.chargingWidgetKey,
+                    );
+                    if (mounted) {
+                      Navigator.popUntil(context, (route) => route.isFirst);
+                    }
+                  },
+                ),
+          ),
         );
-
-        if (result == null) {
-          _showErrorDialog('Failed to start charging.');
-        } else {
-          _showSuccessDialog(package, portId);
-        }
       } else {
         _showErrorDialog('Failed to reserve port.');
       }
@@ -123,76 +120,51 @@ class _EVPackageScreenState extends State<EVPackageScreen> {
 
   Future<bool> _showConfirmationDialog(Map<String, dynamic> package) async {
     return await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Confirm ${package['name']}'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Price: \$${package['price']}'),
-            Text('Duration: ${package['duration']} mins'),
-            const SizedBox(height: 10),
-            const Text('Start this EV charging session?'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue[800],
-            ),
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
-    ) ?? false;
-  }
-
-  void _showSuccessDialog(Map<String, dynamic> package, String portId) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('EV Charging Started!'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.electric_car, color: Colors.green, size: 48),
-            const SizedBox(height: 16),
-            Text('Port: $portId'),
-            Text('Duration: ${package['duration']} mins'),
-          ],
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue[800],
-            ),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
+          context: context,
+          builder:
+              (context) => AlertDialog(
+                title: Text('Confirm ${package['name']}'),
+                content: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Ampere: ${package['ampere']}A'),
+                    Text('Price: LKR ${package['price']}'),
+                    const SizedBox(height: 10),
+                    const Text('Proceed to payment?'),
+                  ],
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancel'),
+                  ),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[800],
+                    ),
+                    child: const Text('Continue'),
+                  ),
+                ],
+              ),
+        ) ??
+        false;
   }
 
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Error'),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -253,7 +225,10 @@ class _EVPackageScreenState extends State<EVPackageScreen> {
               children: [
                 CircularProgressIndicator(color: Colors.white),
                 SizedBox(width: 16),
-                Text('Checking EV port availability...', style: TextStyle(color: Colors.white)),
+                Text(
+                  'Checking EV port availability...',
+                  style: TextStyle(color: Colors.white),
+                ),
               ],
             );
           }
@@ -263,17 +238,24 @@ class _EVPackageScreenState extends State<EVPackageScreen> {
               children: [
                 Icon(Icons.error, color: Colors.red),
                 SizedBox(width: 16),
-                Text('Error checking availability', style: TextStyle(color: Colors.white)),
+                Text(
+                  'Error checking availability',
+                  style: TextStyle(color: Colors.white),
+                ),
               ],
             );
           }
 
           if (!snapshot.hasData || snapshot.data!.snapshot.value == null) {
-            return const Text('No EV Charging Ports found', style: TextStyle(color: Colors.white));
+            return const Text(
+              'No EV Charging Ports found',
+              style: TextStyle(color: Colors.white),
+            );
           }
 
           final ports = (snapshot.data!.snapshot.value as Map).values.toList();
-          final availablePorts = ports.where((port) => port['isAvailable'] == true).length;
+          final availablePorts =
+              ports.where((port) => port['isAvailable'] == true).length;
           final hasAvailable = availablePorts > 0;
 
           return Row(
@@ -290,7 +272,11 @@ class _EVPackageScreenState extends State<EVPackageScreen> {
                   children: [
                     const Text(
                       'EV Charging Ports',
-                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Text(
                       'Available: $availablePorts / ${ports.length}',
@@ -300,14 +286,20 @@ class _EVPackageScreenState extends State<EVPackageScreen> {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: hasAvailable ? Colors.green : Colors.red,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   hasAvailable ? 'Available' : 'All Busy',
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -319,7 +311,9 @@ class _EVPackageScreenState extends State<EVPackageScreen> {
 
   Widget _buildActiveSessionWarning() {
     return FutureBuilder<bool>(
-      future: port_service.PortAvailabilityService.hasActiveSession(currentUserId!),
+      future: port_service.PortAvailabilityService.hasActiveSession(
+        currentUserId!,
+      ),
       builder: (context, snapshot) {
         if (snapshot.hasData && snapshot.data == true) {
           return Container(
@@ -337,7 +331,8 @@ class _EVPackageScreenState extends State<EVPackageScreen> {
                 Expanded(
                   child: Text(
                     'Complete your active session before selecting a new package.',
-                    style: TextStyle(color: Colors.white)),
+                    style: TextStyle(color: Colors.white),
+                  ),
                 ),
               ],
             ),
@@ -391,22 +386,27 @@ class _EVPackageCard extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF0F4C5C)),
+                        color: Color(0xFF0F4C5C),
+                      ),
                     ),
                   ],
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.blue[800],
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    '\$${package['price']}',
+                    'LKR ${package['price']}',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      fontSize: 16),
+                      fontSize: 16,
+                    ),
                   ),
                 ),
               ],
@@ -419,14 +419,15 @@ class _EVPackageCard extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                Icon(Icons.access_time, color: Colors.blue[800], size: 20),
+                Icon(Icons.bolt, color: Colors.blue[800], size: 20),
                 const SizedBox(width: 8),
                 Text(
-                  '${package['duration']} mins',
+                  '${package['ampere']}A',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF0F4C5C)),
+                    color: Color(0xFF0F4C5C),
+                  ),
                 ),
               ],
             ),
@@ -436,19 +437,34 @@ class _EVPackageCard extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Colors.grey[800]),
+                color: Colors.grey[800],
+              ),
             ),
             const SizedBox(height: 8),
-            ...package['features'].map<Widget>((feature) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
-                children: [
-                  Icon(Icons.electric_bolt, color: Colors.blue[700], size: 16),
-                  const SizedBox(width: 8),
-                  Text(feature, style: TextStyle(fontSize: 14, color: Colors.grey[700])),
-                ],
-              ),
-            )).toList(),
+            ...package['features']
+                .map<Widget>(
+                  (feature) => Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.electric_bolt,
+                          color: Colors.blue[700],
+                          size: 16,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          feature,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+                .toList(),
             const SizedBox(height: 20),
             _buildSelectButton(),
           ],
@@ -461,18 +477,25 @@ class _EVPackageCard extends StatelessWidget {
     final String? currentUserId = FirebaseAuth.instance.currentUser?.uid;
 
     return StreamBuilder<DatabaseEvent>(
-      stream: currentUserId != null
-          ? port_service.PortAvailabilityService.getPortsByTypeStream(
-              port_service.PortAvailabilityService.EV_PORT)
-          : null,
+      stream:
+          currentUserId != null
+              ? port_service.PortAvailabilityService.getPortsByTypeStream(
+                port_service.PortAvailabilityService.EV_PORT,
+              )
+              : null,
       builder: (context, snapshot) {
         final ports = snapshot.data?.snapshot.value ?? {};
-        final hasAvailable = (ports as Map).values.any((port) => port['isAvailable'] == true);
+        final hasAvailable = (ports as Map).values.any(
+          (port) => port['isAvailable'] == true,
+        );
 
         return FutureBuilder<bool>(
-          future: currentUserId != null
-              ? port_service.PortAvailabilityService.hasActiveSession(currentUserId)
-              : Future.value(false),
+          future:
+              currentUserId != null
+                  ? port_service.PortAvailabilityService.hasActiveSession(
+                    currentUserId,
+                  )
+                  : Future.value(false),
           builder: (context, activeSessionSnapshot) {
             final hasActiveSession = activeSessionSnapshot.data ?? false;
             final canSelect = hasAvailable && !hasActiveSession && !isLoading;
@@ -485,26 +508,30 @@ class _EVPackageCard extends StatelessWidget {
                   backgroundColor: canSelect ? Colors.blue[800] : Colors.grey,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2),
-                      )
-                    : Text(
-                        !hasAvailable
-                            ? 'No EV Ports Available'
-                            : hasActiveSession
-                                ? 'Session Active'
-                                : 'Select EV Package',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold),
-                      ),
+                child:
+                    isLoading
+                        ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                        : Text(
+                          !hasAvailable
+                              ? 'No EV Ports Available'
+                              : hasActiveSession
+                              ? 'Session Active'
+                              : 'Select EV Package',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
               ),
             );
           },
