@@ -10,23 +10,27 @@ class DashboardAmpereWidget extends StatefulWidget {
 }
 
 class _DashboardAmpereWidgetState extends State<DashboardAmpereWidget> {
-  double _currentAmpere = 0.0;
-  StreamSubscription<double>? _ampereSubscription;
+  double _chargingWatts = 0.0;
+  StreamSubscription<double>? _wattsSubscription;
 
   @override
   void initState() {
     super.initState();
-    _ampereSubscription = AmpereService.ampereStream.listen((ampere) {
-      debugPrint('Ampere value received: $ampere'); // Debug print added
+
+    // Start real-time watts monitoring from Firebase
+    AmpereService.startWattsMonitoring();
+
+    _wattsSubscription = AmpereService.wattsStream.listen((watts) {
       setState(() {
-        _currentAmpere = ampere;
+        _chargingWatts = watts;
       });
     });
   }
 
   @override
   void dispose() {
-    _ampereSubscription?.cancel();
+    _wattsSubscription?.cancel();
+    AmpereService.stopWattsMonitoring();
     super.dispose();
   }
 
@@ -44,7 +48,7 @@ class _DashboardAmpereWidgetState extends State<DashboardAmpereWidget> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Ampere Spending',
+            'Live Charging Power',
             style: TextStyle(
               color: Colors.white,
               fontSize: 18,
@@ -53,8 +57,11 @@ class _DashboardAmpereWidgetState extends State<DashboardAmpereWidget> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Current Ampere: ${_currentAmpere.toStringAsFixed(2)}A',
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+            'Charging Power: ${_chargingWatts.toStringAsFixed(2)} W',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+            ),
           ),
         ],
       ),

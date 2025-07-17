@@ -14,7 +14,6 @@ class AmpereService {
   static String? _portId;
   static double _ampereLimit = 0.0;
 
-  /// Starts a charging session based on ampere package
   static Future<void> startChargingSession({
     required String userId,
     required Map<String, dynamic> package,
@@ -25,7 +24,6 @@ class AmpereService {
       final ampere = (package['ampere'] ?? 10).toDouble();
       _ampereLimit = ampere.toDouble();
 
-      // Create order data
       final orderData = {
         'userId': userId,
         'packageName': packageName,
@@ -44,50 +42,37 @@ class AmpereService {
       _orderId = orderRef.key;
       _portId = portId;
 
-      // Reset notifier values
       consumedAmpere.value = 0;
       isCharging.value = true;
 
-      // Listen ampere sensor
-      _listenCurrentSensor();
+      _listenCurrentSensor(); // Optional: if you want to simulate ampere charging
     } catch (e, st) {
       debugPrint('AmpereService startChargingSession error: $e\n$st');
       rethrow;
     }
   }
 
-  /// Internal method to listen current sensor readings from Firebase RTDB
   static void _listenCurrentSensor() {
     _currentSubscription?.cancel();
-
-    // Path where current sensor writes its data, replace as per your node
-    final sensorRef = _db.child('current_sensor_readings/instance1');
+    final sensorRef = _db.child('live_readings/chargingWatts');
 
     _currentSubscription = sensorRef.onValue.listen((event) async {
       final val = event.snapshot.value;
-      debugPrint('Ampere value updated: $val'); // Debug print added
+      debugPrint('Charging Watts value updated: $val');
       if (val == null) return;
 
-      double currentAmpere = 0.0;
-      // Parse ampere from snapshot value, expect a number, adjust if your data differs
+      double currentWatts = 0.0;
       if (val is num) {
-        currentAmpere = val.toDouble();
-      } else if (val is Map && val.containsKey('ampere')) {
-        currentAmpere = (val['ampere'] as num).toDouble();
+        currentWatts = val.toDouble();
       }
 
-      // Accumulate ampere (simulate total consumed ampere by integrating over time)
-      // Here, we assume sensor updates every second and gives instantaneous ampere.
-      // For demonstration: Increase consumedAmpere by currentAmpere * deltaTime (e.g., seconds)
-      // To keep simple, just add currentAmpere assuming each event = 1 second interval
-      consumedAmpere.value += currentAmpere;
+      // This assumes watts is used in place of ampere for simplification
+      consumedAmpere.value += currentWatts;
 
       if (consumedAmpere.value >= _ampereLimit) {
-        // End charging session automatically
         await stopChargingSession();
       }
 
-      // Update order in RTDB
       if (_orderId != null) {
         await _db.child('orders/$_orderId').update({
           'consumedAmpere': consumedAmpere.value,
@@ -97,7 +82,6 @@ class AmpereService {
     });
   }
 
-  /// Stops charging session, marks order complete, releases port, cancels subscription
   static Future<void> stopChargingSession() async {
     if (!isCharging.value) return;
 
@@ -126,7 +110,6 @@ class AmpereService {
     consumedAmpere.value = 0;
   }
 
-  /// Cancel charging session manually
   static Future<void> cancelChargingSession() async {
     isCharging.value = false;
 
@@ -153,38 +136,42 @@ class AmpereService {
     consumedAmpere.value = 0;
   }
 
-  static final StreamController<double> _ampereController =
+  // ====== Real-time Charging Watts Monitoring for UI ======
+
+  static final StreamController<double> _wattsController =
       StreamController<double>.broadcast();
-  static Timer? _timer;
+  static StreamSubscription<DatabaseEvent>? _wattsSubscription;
 
-  static Stream<double> get ampereStream => _ampereController.stream;
+  static Stream<double> get wattsStream => _wattsController.stream;
 
-  static void startAmpereDetection(double initialAmpere) {
-    double currentAmpere = initialAmpere;
+  static void startWattsMonitoring() {
+    final DatabaseReference wattsRef = _db.child('live_readings/chargingWatts');
 
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      // Simulate ampere spending (decrease over time)
-      currentAmpere = currentAmpere > 0 ? currentAmpere - 0.1 : 0;
-      _ampereController.add(currentAmpere);
+    _wattsSubscription?.cancel();
 
-      if (currentAmpere <= 0) {
-        stopAmpereDetection();
+    _wattsSubscription = wattsRef.onValue.listen((event) {
+      final value = event.snapshot.value;
+      if (value is num) {
+        final watts = value.toDouble();
+        debugPrint('Live Charging Watts: $watts');
+        _wattsController.add(watts);
+      } else {
+        debugPrint('Invalid chargingWatts value: $value');
       }
     });
   }
 
-  static void stopAmpereDetection() {
-    _timer?.cancel();
-    _ampereController.close();
+  static void stopWattsMonitoring() {
+    _wattsSubscription?.cancel();
+    _wattsSubscription = null;
   }
 
-  /// method to add the current sensor node to Firebase
-  static Future<void> addCurrentSensorNode() async {
+  static Future<void> addDummyWattsValue() async {
     try {
-      await _db.child('current_sensor_readings/instance1').set({'ampere': 5});
-      debugPrint('Node added successfully!');
+      await _db.child('live_readings').set({'chargingWatts': 1540.75});
+      debugPrint('Dummy watts value added!');
     } catch (e) {
-      debugPrint('Error adding current sensor node: $e');
+      debugPrint('Error adding dummy watts: $e');
     }
   }
 }
