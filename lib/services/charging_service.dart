@@ -52,6 +52,7 @@ class ChargingService {
           orderId: safeOrderId,
           packageName: safePackage['name']?.toString() ?? 'Unknown Package',
           portId: portId,
+          portType: portType,
           durationMinutes: duration,
         );
       } else {

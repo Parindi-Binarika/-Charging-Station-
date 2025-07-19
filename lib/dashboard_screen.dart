@@ -68,6 +68,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           packageName: order['packageName']?.toString() ?? '',
           portId: order['portId']?.toString() ?? '',
           durationMinutes: (order['durationMinutes'] as num?)?.toInt() ?? 0,
+          portType: order['portType']?.toString() ?? '',
         );
       }
     } catch (e) {

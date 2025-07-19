@@ -20,6 +20,8 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
   String? currentOrderId;
   String? currentPackageName;
   String? currentPortId;
+  String?
+  currentPortType; // Added to differentiate between mobile and EV charging
 
   @override
   void dispose() {
@@ -33,27 +35,34 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
     required String packageName,
     required String portId,
     required int durationMinutes,
+    required String portType, // Added portType to determine charging type
   }) {
-    final int safeDuration =
-        durationMinutes is int
-            ? durationMinutes
-            : int.tryParse(durationMinutes.toString()) ?? 60;
     setState(() {
-      isCharging = true;
-      remainingSeconds = safeDuration * 60;
       currentOrderId = orderId;
       currentPackageName = packageName;
       currentPortId = portId;
+      currentPortType = portType;
+      remainingSeconds =
+          portType == PortAvailabilityService.MOBILE_PORT
+              ? durationMinutes * 60
+              : 0; // Only set countdown for mobile charging
+      isCharging = true;
     });
 
+    if (portType == PortAvailabilityService.MOBILE_PORT) {
+      _startTimer();
+    }
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
         if (remainingSeconds > 0) {
           remainingSeconds--;
         } else {
-          isCharging = false;
-          timer.cancel();
           _completeCharging();
+          timer.cancel();
         }
       });
     });
@@ -116,22 +125,43 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
     );
   }
 
-  String formatTime(int seconds) {
-    final minutes = seconds ~/ 60;
-    final remainingSecs = seconds % 60;
-    return '${minutes.toString().padLeft(2, '0')}:${remainingSecs.toString().padLeft(2, '0')}';
+  /// Method to cancel the charging session
+  void cancelCharging() {
+    setState(() {
+      isCharging = false;
+      remainingSeconds = 0;
+      currentOrderId = null;
+      currentPackageName = null;
+      currentPortId = null;
+      currentPortType = null;
+    });
+
+    _timer?.cancel();
+    _timer = null;
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Charging session canceled.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (!isCharging) return const SizedBox.shrink();
 
+    final isMobileCharging =
+        currentPortType == PortAvailabilityService.MOBILE_PORT;
+
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.teal.shade400, Colors.teal.shade600],
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F4C5C), Color(0xFF1A6B7A)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -155,7 +185,7 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Charging in Progress',
+                      'Charging In Progress',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -173,31 +203,34 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
                   ],
                 ),
               ),
-              Text(
-                formatTime(remainingSeconds),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+              if (isMobileCharging)
+                Text(
+                  _formatTime(remainingSeconds),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 12),
-          LinearProgressIndicator(
-            value:
-                remainingSeconds > 0
-                    ? (60 - remainingSeconds) /
-                        60 // Assuming 1 minute for development
-                    : 1.0,
-            backgroundColor: Colors.white24,
-            valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${remainingSeconds > 0 ? ((60 - remainingSeconds) / 60 * 100).toInt() : 100}% Complete',
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
-          ),
+          if (isMobileCharging)
+            LinearProgressIndicator(
+              value:
+                  remainingSeconds > 0
+                      ? 1.0 -
+                          (remainingSeconds / (remainingSeconds + (60 * 60)))
+                      : 1.0,
+              backgroundColor: Colors.white24,
+              valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          if (isMobileCharging) const SizedBox(height: 8),
+          if (isMobileCharging)
+            Text(
+              '${((remainingSeconds > 0 ? 1.0 - (remainingSeconds / (remainingSeconds + (60 * 60))) : 1.0) * 100).toStringAsFixed(0)}% Complete',
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
             icon: const Icon(Icons.cancel, color: Colors.white),
@@ -232,7 +265,7 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
                     ),
               );
               if (confirm == true) {
-                await cancelCharging();
+                await _cancelCharging();
               }
             },
           ),
@@ -241,7 +274,7 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
     );
   }
 
-  Future<void> cancelCharging() async {
+  Future<void> _cancelCharging() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
@@ -281,5 +314,11 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
         ).showSnackBar(SnackBar(content: Text('Error canceling charging: $e')));
       }
     }
+  }
+
+  String _formatTime(int seconds) {
+    final minutes = seconds ~/ 60;
+    final remainingSecs = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSecs.toString().padLeft(2, '0')}';
   }
 }
