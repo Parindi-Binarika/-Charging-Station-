@@ -22,7 +22,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
     {
       'name': 'Basic Package',
       'price': 100,
-      'duration': 2, //for developmemt, i keep this as 2 min.....
+      'duration': 1, //for developmemt, i keep this as 1 min.....
       'description': 'Perfect for quick charging sessions',
       'features': ['Fast charging', '1 hour duration', 'Standard support'],
     },

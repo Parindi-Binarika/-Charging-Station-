@@ -60,11 +60,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             order['status'] == 'Charging Started';
       }, orElse: () => MapEntry('', null));
 
-      if (activeOrderEntry.key != null &&
-          chargingWidgetKey.currentState != null) {
+      if (chargingWidgetKey.currentState != null) {
         final order = _safeCastToMap(activeOrderEntry.value);
         chargingWidgetKey.currentState!.startCharging(
-          orderId: activeOrderEntry.key!,
+          orderId: activeOrderEntry.key,
           packageName: order['packageName']?.toString() ?? '',
           portId: order['portId']?.toString() ?? '',
           durationMinutes: (order['durationMinutes'] as num?)?.toInt() ?? 0,

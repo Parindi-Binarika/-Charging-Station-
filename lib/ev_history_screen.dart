@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:intl/intl.dart';
-import '../services/ampere_service.dart';
 import 'ev_chart_screen.dart';
 
 class EVHistoryScreen extends StatefulWidget {

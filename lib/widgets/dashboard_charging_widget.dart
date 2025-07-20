@@ -85,11 +85,14 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
         await PortAvailabilityService.releasePort(currentPortId!, user.uid);
       }
 
-      // Reset state
+      // Reset state and hide widget after charging is complete
       setState(() {
+        isCharging = false;
+        remainingSeconds = 0;
         currentOrderId = null;
         currentPackageName = null;
         currentPortId = null;
+        currentPortType = null;
       });
 
       widget.onChargingComplete?.call();
@@ -97,8 +100,9 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
       if (mounted) {
         _showCompletionSnackBar();
       }
-    } catch (e) {
+    } catch (e, st) {
       print("Error completing charging: $e");
+      print("StackTrace: $st");
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -151,10 +155,16 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (!isCharging) return const SizedBox.shrink();
-
+    // Only show the widget if charging is in progress AND (for mobile) countdown is running
     final isMobileCharging =
         currentPortType == PortAvailabilityService.MOBILE_PORT;
+
+    // Hide widget if not charging, or if mobile charging and countdown is finished
+    if (!isCharging || (isMobileCharging && remainingSeconds <= 0)) {
+      return const SizedBox.shrink();
+    }
+
+    final showCountdown = isMobileCharging && remainingSeconds > 0;
 
     return Container(
       margin: const EdgeInsets.all(16),
@@ -226,49 +236,50 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
               valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
             ),
           if (isMobileCharging) const SizedBox(height: 8),
-          if (isMobileCharging)
+          if (showCountdown)
             Text(
               '${((remainingSeconds > 0 ? 1.0 - (remainingSeconds / (remainingSeconds + (60 * 60))) : 1.0) * 100).toStringAsFixed(0)}% Complete',
               style: const TextStyle(color: Colors.white70, fontSize: 12),
             ),
           const SizedBox(height: 16),
-          ElevatedButton.icon(
-            icon: const Icon(Icons.cancel, color: Colors.white),
-            label: const Text('Cancel Charging'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 40),
-            ),
-            onPressed: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder:
-                    (context) => AlertDialog(
-                      title: const Text('Cancel Charging'),
-                      content: const Text(
-                        'Are you sure you want to cancel this charging session?',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text('No'),
+          if (showCountdown)
+            ElevatedButton.icon(
+              icon: const Icon(Icons.cancel, color: Colors.white),
+              label: const Text('Cancel Charging'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 40),
+              ),
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder:
+                      (context) => AlertDialog(
+                        title: const Text('Cancel Charging'),
+                        content: const Text(
+                          'Are you sure you want to cancel this charging session?',
                         ),
-                        ElevatedButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('No'),
                           ),
-                          child: const Text('Yes, Cancel'),
-                        ),
-                      ],
-                    ),
-              );
-              if (confirm == true) {
-                await _cancelCharging();
-              }
-            },
-          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                            ),
+                            child: const Text('Yes, Cancel'),
+                          ),
+                        ],
+                      ),
+                );
+                if (confirm == true) {
+                  await _cancelCharging();
+                }
+              },
+            ),
         ],
       ),
     );
@@ -307,7 +318,9 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
           ),
         );
       }
-    } catch (e) {
+    } catch (e, st) {
+      print("Error canceling charging: $e");
+      print("StackTrace: $st");
       if (mounted) {
         ScaffoldMessenger.of(
           context,
