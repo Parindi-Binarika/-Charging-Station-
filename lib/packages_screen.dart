@@ -187,7 +187,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF0F4C5C), Color(0xFF1A6B7A)],
+            colors: [Color(0xFF4CA774), Color(0xFF4CA774)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),

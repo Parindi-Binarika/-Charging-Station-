@@ -111,10 +111,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F4C5C),
+      backgroundColor: const Color(0xFF4CA774,), // #EAF9E7, light green background
       appBar: AppBar(
+        centerTitle: true,
         title: Text(_titles[_selectedIndex]),
-        backgroundColor: Colors.teal[800],
+        backgroundColor: const Color(0xFF388E5C), // #013237, deep green for app bar
         elevation: 0,
         actions: [
           if (currentUserId != null)
@@ -171,7 +172,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           padding: EdgeInsets.zero,
           children: [
             DrawerHeader(
-              decoration: BoxDecoration(color: Colors.teal[800]),
+              decoration: BoxDecoration(color: Color(0xFF4CA771)),
               child: const Text(
                 'Smart Charging Station',
                 style: TextStyle(
@@ -243,7 +244,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return ListTile(
       leading: Icon(
         icon,
-        color: _selectedIndex == index ? Colors.teal[800] : null,
+        color:
+            _selectedIndex == index
+                ? const Color.fromARGB(255, 3, 114, 101)
+                : null,
       ),
       title: Text(text),
       selected: _selectedIndex == index,
@@ -276,7 +280,7 @@ class _DashboardHomeScreen extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.teal[700]!, Colors.teal[500]!],
+                colors: [const Color(0xFF4CA771), const Color(0xFF388E5C)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),

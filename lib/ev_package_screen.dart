@@ -141,7 +141,7 @@ class EVPackageScreenState extends State<EVPackageScreen> {
                   ElevatedButton(
                     onPressed: () => Navigator.pop(context, true),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[800],
+                      backgroundColor: Colors.teal[800],
                     ),
                     child: const Text('Continue'),
                   ),
@@ -174,7 +174,7 @@ class EVPackageScreenState extends State<EVPackageScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF0F4C5C), Color(0xFF1A6B7A)],
+            colors: [Color(0xFF4CA774), Color(0xFF4CA774)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -383,10 +383,10 @@ class _EVPackageCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Text(
                       package['name'],
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF0F4C5C),
+                        color: Colors.teal[800],
                       ),
                     ),
                   ],
@@ -397,7 +397,7 @@ class _EVPackageCard extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.blue[800],
+                    color: Colors.teal[800],
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -419,14 +419,14 @@ class _EVPackageCard extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                Icon(Icons.bolt, color: Colors.blue[800], size: 20),
+                Icon(Icons.bolt, color: Colors.teal[800], size: 20),
                 const SizedBox(width: 8),
                 Text(
                   '${package['ampere']}A',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF0F4C5C),
+                    color: Colors.teal[800],
                   ),
                 ),
               ],
@@ -449,7 +449,7 @@ class _EVPackageCard extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.electric_bolt,
-                          color: Colors.blue[700],
+                            color: Colors.teal[800],
                           size: 16,
                         ),
                         const SizedBox(width: 8),
@@ -505,7 +505,7 @@ class _EVPackageCard extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: canSelect ? onSelect : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: canSelect ? Colors.blue[800] : Colors.grey,
+                  backgroundColor: canSelect ? Colors.teal[800] : Colors.grey,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),

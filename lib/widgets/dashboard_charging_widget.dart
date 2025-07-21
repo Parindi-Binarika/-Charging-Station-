@@ -171,14 +171,17 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF0F4C5C), Color(0xFF1A6B7A)],
+          colors: [
+            Color(0xFF4CA771),
+            Color(0xFFCEE6BA),
+          ], // fixed: #4CA771, #CEE6BA
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.teal.withOpacity(0.3),
+            color: const Color(0xFF4CA771).withOpacity(0.15),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),

@@ -40,9 +40,19 @@ class _DashboardAmpereWidgetState extends State<DashboardAmpereWidget> {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
+        color: const Color(0xFFCEE6BA).withOpacity(0.85), // fixed: #CEE6BA
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.3)),
+        border: Border.all(
+          color: const Color(0xFF4CA771),
+          width: 1.2,
+        ), // #4CA771
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF4CA771).withOpacity(0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -50,7 +60,7 @@ class _DashboardAmpereWidgetState extends State<DashboardAmpereWidget> {
           const Text(
             'Live Charging Power',
             style: TextStyle(
-              color: Colors.white,
+              color: Color(0xFF013237), // #013237
               fontSize: 18,
               fontWeight: FontWeight.bold,
             ),
@@ -59,7 +69,7 @@ class _DashboardAmpereWidgetState extends State<DashboardAmpereWidget> {
           Text(
             'Charging Power: ${_chargingWatts.toStringAsFixed(2)} W',
             style: const TextStyle(
-              color: Colors.white,
+              color: Color(0xFF4CA771), // #4CA771
               fontSize: 16,
             ),
           ),
