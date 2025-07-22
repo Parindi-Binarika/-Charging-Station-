@@ -14,7 +14,7 @@ class ChartViewScreenState extends State<ChartViewScreen> {
   Map<String, int> packageCounts = {};
   Map<String, int> durationTotals = {};
   bool isLoading = true;
-  String chartType = 'Count'; // 'Count' or 'Duration'
+  String chartType = 'Count'; // 'Count'  'Duration'
 
   @override
   void initState() {

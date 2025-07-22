@@ -12,9 +12,9 @@ import 'login_screen.dart';
 import 'port_availability_service.dart' as port_service;
 import 'port_status_widget.dart';
 
-// Mobile charging session widget
+
 import 'widgets/dashboard_charging_widget.dart';
-// EV charging session widget
+
 import 'widgets/dashboard_ampere_widget.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -111,11 +111,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF4CA774,), // #EAF9E7, light green background
+      backgroundColor: const Color(
+        0xFF4CA774,
+      ), 
       appBar: AppBar(
         centerTitle: true,
         title: Text(_titles[_selectedIndex]),
-        backgroundColor: const Color(0xFF388E5C), // #013237, deep green for app bar
+        backgroundColor: const Color(
+          0xFF388E5C,
+        ), 
         elevation: 0,
         actions: [
           if (currentUserId != null)
@@ -220,7 +224,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       body: Column(
         children: [
-          // For EV Charging Status (ampere-based)
+          // For EV Charging Status 
           const DashboardAmpereWidget(),
           // For Mobile Charging Status
           DashboardChargingWidget(

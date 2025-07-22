@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import '../port_availability_service.dart'; // Use your actual service
+import '../port_availability_service.dart';
 
 class DashboardChargingWidget extends StatefulWidget {
   final VoidCallback? onChargingComplete;
@@ -21,7 +21,7 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
   String? currentPackageName;
   String? currentPortId;
   String?
-  currentPortType; // Added to differentiate between mobile and EV charging
+  currentPortType; 
 
   @override
   void dispose() {
@@ -35,7 +35,7 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
     required String packageName,
     required String portId,
     required int durationMinutes,
-    required String portType, // Added portType to determine charging type
+    required String portType, 
   }) {
     setState(() {
       currentOrderId = orderId;
@@ -45,7 +45,7 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
       remainingSeconds =
           portType == PortAvailabilityService.MOBILE_PORT
               ? durationMinutes * 60
-              : 0; // Only set countdown for mobile charging
+              : 0; // Only FOR MKBILE....
       isCharging = true;
     });
 
@@ -73,7 +73,7 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      // Update order in Realtime Database
+      // Update order in RTDB
       if (currentOrderId != null) {
         await FirebaseDatabase.instance.ref('orders/${currentOrderId!}').update(
           {'status': 'Completed', 'completedAt': ServerValue.timestamp},
@@ -129,7 +129,7 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
     );
   }
 
-  /// Method to cancel the charging session
+  /// cancel the charging session
   void cancelCharging() {
     setState(() {
       isCharging = false;
@@ -155,11 +155,11 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
 
   @override
   Widget build(BuildContext context) {
-    // Only show the widget if charging is in progress AND (for mobile) countdown is running
+    // Only show the widget if charging is in progress AND (
     final isMobileCharging =
         currentPortType == PortAvailabilityService.MOBILE_PORT;
 
-    // Hide widget if not charging, or if mobile charging and countdown is finished
+    // Hide widget if not charging, 
     if (!isCharging || (isMobileCharging && remainingSeconds <= 0)) {
       return const SizedBox.shrink();
     }
@@ -174,7 +174,7 @@ class DashboardChargingWidgetState extends State<DashboardChargingWidget> {
           colors: [
             Color(0xFF4CA771),
             Color(0xFFCEE6BA),
-          ], // fixed: #4CA771, #CEE6BA
+          ], 
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

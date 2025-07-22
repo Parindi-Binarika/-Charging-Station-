@@ -17,7 +17,7 @@ class _DashboardAmpereWidgetState extends State<DashboardAmpereWidget> {
   void initState() {
     super.initState();
 
-    // Start real-time watts monitoring from Firebase
+    // Start real-time watts monitoring from Firebase .........
     AmpereService.startWattsMonitoring();
 
     _wattsSubscription = AmpereService.wattsStream.listen((watts) {
@@ -40,12 +40,12 @@ class _DashboardAmpereWidgetState extends State<DashboardAmpereWidget> {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFCEE6BA).withOpacity(0.85), // fixed: #CEE6BA
+        color: const Color(0xFFCEE6BA).withOpacity(0.85), 
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: const Color(0xFF4CA771),
           width: 1.2,
-        ), // #4CA771
+        ), 
         boxShadow: [
           BoxShadow(
             color: const Color(0xFF4CA771).withOpacity(0.08),
@@ -69,7 +69,7 @@ class _DashboardAmpereWidgetState extends State<DashboardAmpereWidget> {
           Text(
             'Charging Power: ${_chargingWatts.toStringAsFixed(2)} W',
             style: const TextStyle(
-              color: Color(0xFF4CA771), // #4CA771
+              color: Color(0xFF4CA771), 
               fontSize: 16,
             ),
           ),

@@ -83,7 +83,7 @@ class EVPackageScreenState extends State<EVPackageScreen> {
       );
 
       if (portId != null) {
-        // Redirect to EV payment screen with ampere, price, portId, etc.
+        // Redirect to EV payment screen  portId
         Navigator.push(
           context,
           MaterialPageRoute(

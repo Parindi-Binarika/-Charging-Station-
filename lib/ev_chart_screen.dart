@@ -14,7 +14,7 @@ class EVChartScreenState extends State<EVChartScreen> {
   Map<String, double> ampereTotals = {};
   Map<String, int> sessionCounts = {};
   bool isLoading = true;
-  String chartType = 'Ampere'; // 'Ampere' or 'Sessions'
+  String chartType = 'Ampere'; // 'Ampere' or 'Sessions' -added 
 
   @override
   void initState() {

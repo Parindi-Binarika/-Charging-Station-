@@ -14,7 +14,7 @@ class ChargingService {
     required GlobalKey<DashboardChargingWidgetState>? chargingWidgetKey,
   }) async {
     try {
-      // Safely get duration with fallback to 60 minutes
+      // Safely get duration with fallback to MINS
       final duration = _parseDuration(package['duration']);
 
       // Convert package to Map<String, dynamic> with string keys
@@ -27,7 +27,7 @@ class ChargingService {
                 ),
               );
 
-      // Create order data with type-safe values
+      // Create order data
       final orderData = {
         'userId': userId,
         'packageName': safePackage['name']?.toString() ?? 'Unknown Package',
@@ -42,7 +42,7 @@ class ChargingService {
       final orderRef = _database.ref('orders').push();
       await orderRef.set(orderData);
 
-      // Get a safe order ID
+      
       final safeOrderId = orderRef.key ?? '';
 
       // Start charging if widget is available
@@ -91,7 +91,7 @@ class ChargingService {
     }
   }
 
-  // Helper method to safely parse duration
+  //  parse duration
   static int _parseDuration(dynamic duration) {
     try {
       if (duration is int) return duration;
@@ -104,7 +104,7 @@ class ChargingService {
     }
   }
 
-  // Helper method to safely convert Firebase data
+  // convert Firebase data
   static Map<String, dynamic> safeCastMap(dynamic data) {
     try {
       if (data is Map) {

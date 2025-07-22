@@ -41,7 +41,7 @@ class EVHistoryScreenState extends State<EVHistoryScreen> {
       final List<Map<String, dynamic>> loadedOrders = [];
       for (final child in snapshot.children) {
         final data = Map<String, dynamic>.from(child.value as Map);
-        // Filter for EV orders based on `portType` and include ampere-related data
+        // Filter for EV orders based on `portType` 
         if ((data['portType'] ?? 'ev') == 'ev') {
           loadedOrders.add({
             'id': child.key,

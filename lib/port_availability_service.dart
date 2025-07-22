@@ -7,7 +7,7 @@ class PortAvailabilityService {
   static const String MOBILE_PORT = 'mobile';
   static const String EV_PORT = 'ev';
 
-  // Initialize ports in Realtime Database (call this once when setting up the system)
+  // Initialize ports rtdb --call this once when setting up the system
   static Future<void> initializePorts() async {
     try {
       final portsRef = _database.ref(_portsNode);
@@ -152,7 +152,7 @@ class PortAvailabilityService {
   // Release a port after charging is complete
   static Future<bool> releasePort(String portId, String userId) async {
     try {
-      // No authentication/user check needed with open rules
+      // No user check need
       await _database.ref('$_portsNode/$portId').update({
         'isAvailable': true,
         'currentUserId': null,
@@ -167,7 +167,7 @@ class PortAvailabilityService {
     }
   }
 
-  // Get port details by ID
+  // Get port by ID
   static Future<DataSnapshot?> getPortById(String portId) async {
     final doc = await _database.ref('$_portsNode/$portId').get();
     return doc.exists ? doc : null;

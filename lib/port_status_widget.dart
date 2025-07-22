@@ -37,7 +37,7 @@ class PortStatusWidget extends StatelessWidget {
             ports.where((port) => port['isAvailable'] == true).length;
         int totalPorts = ports.length;
 
-        // Force EV port to always show 1/1
+        // ev port to always show 1/1
         if (portType == PortAvailabilityService.EV_PORT) {
           totalPorts = 1;
           availablePorts = availablePorts > 0 ? 1 : 0;

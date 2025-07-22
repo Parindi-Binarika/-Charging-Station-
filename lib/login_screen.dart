@@ -31,7 +31,7 @@ class LoginScreenState extends State<LoginScreen> {
       password: _passwordController.text.trim(),
     );
     
-    // Add navigation to dashboard after successful login
+    // navigation to dashboard after login
     if (mounted) {
       Navigator.pushReplacement(
         context,

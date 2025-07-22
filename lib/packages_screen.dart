@@ -29,7 +29,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
     {
       'name': 'Standard Package',
       'price': 250,
-      'duration': 180, // 3 hours in minutes
+      'duration': 180, 
       'description': 'Ideal for extended charging needs',
       'features': [
         'Fast charging',
@@ -41,7 +41,7 @@ class _PackagesScreenState extends State<PackagesScreen> {
     {
       'name': 'Premium Package',
       'price': 500,
-      'duration': 360, // 6 hours in minutes
+      'duration': 360, 
       'description': 'Best value for long charging sessions',
       'features': [
         'Ultra-fast charging',

@@ -27,7 +27,7 @@ class SignUpScreenState extends State<SignUpScreen> {
             email: usernameController.text.trim(),
             password: passwordController.text.trim(),
           );
-      // Store user data in Realtime Database instead of Firestore
+      // Store user data in Realtime Database 
       await FirebaseDatabase.instance
           .ref('users/${userCredential.user!.uid}')
           .set({

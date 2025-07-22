@@ -45,7 +45,7 @@ class AmpereService {
       consumedAmpere.value = 0;
       isCharging.value = true;
 
-      _listenCurrentSensor(); // Optional: if you want to simulate ampere charging
+      _listenCurrentSensor(); // simulate ampere charging
     } catch (e, st) {
       debugPrint('AmpereService startChargingSession error: $e\n$st');
       rethrow;
@@ -136,7 +136,7 @@ class AmpereService {
     consumedAmpere.value = 0;
   }
 
-  // ====== Real-time Charging Watts Monitoring for UI ======
+  //  Real-time Charging Watts Monitoring for UI ..........
 
   static final StreamController<double> _wattsController =
       StreamController<double>.broadcast();
